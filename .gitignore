@@ -174,3 +174,12 @@
 *.lz
 *.lzma
 *.iso
+
+# Next.js build output
+**/.next/
+**/out/
+**/.vercel/
+next-env.d.ts
+
+# Uploaded files
+**/uploads/

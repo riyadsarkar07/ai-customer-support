@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: saas
+      POSTGRES_PASSWORD: saas_dev_password
+      POSTGRES_DB: saasdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas -d saasdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    environment:
+      NODE_ENV: production
+      APP_URL: http://localhost:3000
+      DATABASE_URL: postgres://saas:saas_dev_password@postgres:5432/saasdb
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production-please}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "node_modules/.bin/tsx src/lib/db/migrate.ts && npm start"
+
+  worker:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://saas:saas_dev_password@postgres:5432/saasdb
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production-please}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: node_modules/.bin/tsx scripts/worker.ts
+
+volumes:
+  pgdata:
